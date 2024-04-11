@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import Guitar from "./components/Guitar";
 import { db } from "./data/db";
@@ -13,12 +13,22 @@ function App() {
 
     // }, [auth]);
 
+    const initialCart = () => {
+        const localStorageCart = localStorage.getItem('cart')
+        return localStorageCart ? JSON.parse(localStorageCart) : []
+    }
+
     const [data, setData] = useState(db);//Aqui se pasa la informacion de la base de datos utilizando useState
-    const [cart, setCart] = useState([]);
+    const [cart, setCart] = useState(initialCart);
+
+    useEffect(() => {
+        localStorage.setItem('cart', JSON.stringify(cart))
+    }, [cart])
 
     function addToCart(item) {
         const itemExist = cart.findIndex(guitar => guitar.id === item.id);
         if (itemExist >= 0) {
+            if (cart[itemExist].quantity >= 5) return
             const updateCart = [...cart] // Aqui se crea una copia del carrito utilizando el operator spread, ya que el state es inmutable por eso se hace de esta forma
             updateCart[itemExist].quantity++//Aqui se toma la copia del state para incrementarlo
             setCart(updateCart)//Aqui lo seteamos para incrementar el carrito sin mutar el state original
@@ -34,19 +44,39 @@ function App() {
         setCart(prevCart => prevCart.filter(guitar => guitar.id !== id)) //Esto filtra las guitarras cuyo id que sean diferentes a id y las eliminara
     }
 
+    function decreaseQuantity(id) {
+        console.log('decrementando', id);
+        const decreaseCart = cart.map(item => {
+            if (item.id === id && item.quantity > 1) {
+                return {
+                    ...item,
+                    quantity: item.quantity - 1
+                }
+            }
+            return item
+        })
+        setCart(decreaseCart)
+    }
+
     function increaseQuantity(id) {
         console.log('Incrementando', id);
-       const updateCart = cart.map(item => {
-        if(item.id === id  && item.quantity < 5){
-            return{
-                ...item,
-                quantity: item.quantity + 1
+        const updateCart = cart.map(item => {
+            if (item.id === id && item.quantity < 5) {
+                return {
+                    ...item,
+                    quantity: item.quantity + 1
+                }
             }
-        }
-        return item
-       })
-       setCart(updateCart)
+            return item
+        })
+        setCart(updateCart)
     }
+
+    function cleanCart() {
+        setCart([]);
+    }
+
+
 
     return (
         <>
@@ -54,6 +84,8 @@ function App() {
                 cart={cart}
                 removeFromCart={removeFromCart}
                 increaseQuantity={increaseQuantity}
+                decreaseQuantity={decreaseQuantity}
+                cleanCart={cleanCart}
             />
             <main className="container-xl mt-5">
                 <h2 className="text-center">Nuestra Colección</h2>
@@ -66,6 +98,7 @@ function App() {
                             cart={cart}
                             setCart={setCart}
                             addToCart={addToCart}
+                            cleanCart={cleanCart}
                         />
                     ))}
 
